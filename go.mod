@@ -1,4 +1,4 @@
-module dvlist
+module github.com/hujun-open/dvlist
 
 go 1.14
 
