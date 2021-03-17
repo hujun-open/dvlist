@@ -9,19 +9,19 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 
 	// "fyne.io/fyne/container"
 
 	// "fyne.io/fyne/driver/desktop"
-	"fyne.io/fyne/layout"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2/layout"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 )
 
 type Look struct {
-	TextSize  int
+	TextSize  float32
 	TextColor color.Color
 	TextStyle fyne.TextStyle
 	Alignment fyne.TextAlign
@@ -91,7 +91,7 @@ const (
 type OnSelectionHandler func(id int, selected bool)
 type DoubleClickHandler func(id int)
 type headerOnTapHandler func(colid int, ascend bool)
-type notifyListDraghandler func([]int)
+type notifyListDraghandler func([]float32)
 
 type listRow struct {
 	widget.BaseWidget
@@ -100,12 +100,12 @@ type listRow struct {
 	selected             *uint32 // non-zero means selected
 	header               bool
 	actChan              chan *rowAct
-	rightPadding         int
+	rightPadding         float32
 	selectHandler        OnSelectionHandler
 	headerTapHandler     headerOnTapHandler
 	headerDragHandler    notifyListDraghandler
 	headerSortDirections []*uint32 // non-zero means ascend
-	arrangements         []int     // percentage width for each field, sum<=MaxFields0
+	arrangements         []float32 // percentage width for each field, sum<=MaxFields0
 	mux                  *sync.RWMutex
 	look                 *Look
 	doubleClickHandler   DoubleClickHandler
@@ -116,7 +116,7 @@ const (
 	MaxFields       = 100
 )
 
-func NewListHeaderRow(list []string, padding int, handler headerOnTapHandler, dh notifyListDraghandler, arr []int, look *Look) *listRow {
+func NewListHeaderRow(list []string, padding float32, handler headerOnTapHandler, dh notifyListDraghandler, arr []float32, look *Look) *listRow {
 	if len(list) > MaxFields {
 		return nil
 	}
@@ -126,7 +126,7 @@ func NewListHeaderRow(list []string, padding int, handler headerOnTapHandler, dh
 		rightPadding:      padding,
 		headerTapHandler:  handler,
 		headerDragHandler: dh,
-		arrangements:      []int{},
+		arrangements:      []float32{},
 		mux:               new(sync.RWMutex),
 		look:              look,
 	}
@@ -137,7 +137,7 @@ func NewListHeaderRow(list []string, padding int, handler headerOnTapHandler, dh
 	}
 	if len(arr) == 0 {
 		for i := 0; i < len(list); i++ {
-			row.arrangements = append(row.arrangements, MaxFields/len(list))
+			row.arrangements = append(row.arrangements, float32(MaxFields/len(list)))
 		}
 	} else {
 		if len(arr) != len(list) {
@@ -154,14 +154,14 @@ func NewListHeaderRow(list []string, padding int, handler headerOnTapHandler, dh
 func NewListBodyRow(id int, list []string,
 	handler OnSelectionHandler,
 	dclickHandler DoubleClickHandler,
-	arr []int, look *Look) *listRow {
+	arr []float32, look *Look) *listRow {
 	row := &listRow{
 		rowID:              id,
 		selected:           new(uint32),
 		header:             false,
 		actChan:            make(chan *rowAct, rowActChanDepth),
 		selectHandler:      handler,
-		arrangements:       []int{},
+		arrangements:       []float32{},
 		mux:                new(sync.RWMutex),
 		look:               look,
 		doubleClickHandler: dclickHandler,
@@ -175,7 +175,7 @@ func NewListBodyRow(id int, list []string,
 		row.arrangements = append(row.arrangements, arr[i])
 	}
 	for i := 0; i < len(list); i++ {
-		row.arrangements = append(row.arrangements, MaxFields/len(list))
+		row.arrangements = append(row.arrangements, float32(MaxFields/len(list)))
 	}
 	atomic.StoreUint32(row.selected, 0)
 	row.ExtendBaseWidget(row)
@@ -206,7 +206,7 @@ func (row *listRow) SetSelection(selected bool, admin bool) {
 	}
 }
 
-func (row *listRow) adjustArrangements(col int, delta int) error {
+func (row *listRow) adjustArrangements(col int, delta float32) error {
 	if delta == 0 {
 		return fmt.Errorf("not dragging")
 	}
@@ -220,7 +220,7 @@ func (row *listRow) adjustArrangements(col int, delta int) error {
 			return fmt.Errorf("invalid column id %d", col)
 		}
 	}
-	previousRightTotal := 0
+	var previousRightTotal float32 = 0
 	for i := col + 1; i < len(row.arrangements); i++ {
 		previousRightTotal += row.arrangements[i]
 	}
@@ -239,7 +239,7 @@ func (row *listRow) adjustArrangements(col int, delta int) error {
 			row.arrangements[col] = 1
 		}
 	}
-	allocated := 0
+	var allocated float32 = 0
 	for i := 0; i <= col; i++ {
 		allocated += row.arrangements[i]
 	}
@@ -264,7 +264,7 @@ func (row *listRow) reLayout(refresh bool) {
 
 func (row *listRow) dragHandler(metadata interface{}, evt *fyne.DragEvent) {
 	col := metadata.(listCord).Column
-	err := row.adjustArrangements(col, evt.DraggedX)
+	err := row.adjustArrangements(col, evt.Dragged.DX)
 	if err == nil {
 		row.reLayout(true)
 		if row.headerDragHandler != nil {
@@ -391,8 +391,8 @@ func (lrr *listRowRender) Destroy() {
 }
 
 const (
-	headerSepWidth = 2
-	sepGapWidth    = 2
+	headerSepWidth         = 2
+	sepGapWidth    float32 = 2
 )
 
 func (lrr *listRowRender) Layout(layoutsize fyne.Size) {
@@ -403,7 +403,7 @@ func (lrr *listRowRender) Layout(layoutsize fyne.Size) {
 	lrr.background.Resize(newsize)
 	lrr.row.mux.RLock()
 	defer lrr.row.mux.RUnlock()
-	startx := 0
+	var startx float32 = 0
 	for i, label := range lrr.labelList {
 		fieldWidth := (lrr.row.arrangements[i] * newsize.Width) / MaxFields
 		label.Resize(fyne.NewSize(fieldWidth-2*sepGapWidth-headerSepWidth, newsize.Height))
@@ -420,7 +420,7 @@ func (lrr *listRowRender) Layout(layoutsize fyne.Size) {
 
 func (lrr *listRowRender) MinSize() fyne.Size {
 	h := lrr.labelList[0].MinSize().Height
-	w := 0
+	var w float32 = 0
 	for _, label := range lrr.labelList {
 		w += label.MinSize().Width
 	}

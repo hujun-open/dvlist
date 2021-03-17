@@ -7,15 +7,10 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-
-	// "fyne.io/fyne/container"
-
-	// "fyne.io/fyne/driver/desktop"
-	// "fyne.io/fyne/layout"
-	"fyne.io/fyne/theme"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
 )
 
 const measureChar = "H"
@@ -23,9 +18,9 @@ const measureChar = "H"
 // input val is a single line of rune, return number of chars n
 // so that val[txtpos:txtpos+n] fits in width wid;
 // unitWid is the avg single char widwth;
-func lineChars(val []rune, txtpos, wid, unitWid int, fontsize int, style fyne.TextStyle) int {
+func lineChars(val []rune, txtpos int, wid, unitWid float32, fontsize float32, style fyne.TextStyle) int {
 
-	amount := wid / unitWid
+	amount := int(wid / unitWid)
 	lineLen := len(val)
 	// log.Printf("linechar for linelen %d wid %d unitwid %d", lineLen, wid, unitWid)
 	if txtpos >= lineLen || txtpos < 0 {
@@ -197,7 +192,7 @@ func (rl *resizableLabel) DoubleTapped(evt *fyne.PointEvent) {
 
 }
 
-func getUnitSize(fontsize int, style fyne.TextStyle) fyne.Size {
+func getUnitSize(fontsize float32, style fyne.TextStyle) fyne.Size {
 	return fyne.MeasureText(measureChar, fontsize, style)
 }
 

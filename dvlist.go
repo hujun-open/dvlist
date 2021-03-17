@@ -11,9 +11,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"fyne.io/fyne"
-	"fyne.io/fyne/canvas"
-	"fyne.io/fyne/widget"
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
+	"fyne.io/fyne/v2/widget"
 	"github.com/hujun-open/sbar"
 )
 
@@ -316,7 +316,7 @@ func newDVListRender(list *DVList) *dvListRender {
 	return dlr
 }
 
-func (dlr *dvListRender) onDragHeader(newarr []int) {
+func (dlr *dvListRender) onDragHeader(newarr []float32) {
 	for _, row := range dlr.body {
 		row.mux.Lock()
 		for i, r := range newarr {
@@ -345,7 +345,7 @@ func (dlr *dvListRender) loadData(layoutsize fyne.Size) {
 	// }
 	// atomic.StoreUint32(dlr.list.curStartPoint, uint32(startPoint))
 	// log.Printf("adjust start pt is %d", startPoint)
-	h := 0
+	var h float32 = 0
 	defer func() {
 		if dlr.list.data.Len() == 0 {
 			return
@@ -432,7 +432,7 @@ func (dlr *dvListRender) layout(layoutsize fyne.Size, mode int) {
 	dlr.overallContainer.Add(sep)
 	for i, row := range dlr.body {
 		row.Resize(fyne.NewSize(mainbodysize.Width, row.MinSize().Height))
-		row.Move(fyne.NewPos(0, (layoutsize.Height-mainbodysize.Height)+i*row.MinSize().Height))
+		row.Move(fyne.NewPos(0, (layoutsize.Height-mainbodysize.Height)+float32(i)*row.MinSize().Height))
 		if dlr.list.curSelections[row.rowID] {
 			row.SetSelection(true, true)
 		} else {
@@ -440,6 +440,7 @@ func (dlr *dvListRender) layout(layoutsize fyne.Size, mode int) {
 		}
 		dlr.overallContainer.Add(row)
 	}
+
 	dlr.scrollbar.Resize(fyne.NewSize(sbar.BarWidth, mainbodysize.Height))
 	dlr.scrollbar.Move(fyne.NewPos(mainbodysize.Width, layoutsize.Height-mainbodysize.Height))
 	dlr.overallContainer.Add(dlr.scrollbar)
