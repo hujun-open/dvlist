@@ -316,7 +316,7 @@ func (row *listRow) tapHandler(metadata interface{}, evt *fyne.PointEvent) {
 				// }
 			}
 		}
-		for i, _ := range row.headerSortDirections {
+		for i := range row.headerSortDirections {
 			if i != pos {
 				atomic.StoreUint32(row.headerSortDirections[i], headerSortNone)
 			} else {
@@ -452,7 +452,7 @@ func (lrr *listRowRender) Refresh() {
 			canvas.Refresh(lrr.background)
 		case rowActHeaderSetSort:
 			lrr.row.mux.Lock()
-			for i, _ := range lrr.row.headerSortDirections {
+			for i := range lrr.row.headerSortDirections {
 				newdirection := atomic.LoadUint32(lrr.row.headerSortDirections[i])
 				newtext := lrr.labelList[i].Get()
 				if newtext[len(newtext)-1] == ascendChar || newtext[len(newtext)-1] == descendChar {

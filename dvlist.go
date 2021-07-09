@@ -60,6 +60,7 @@ type DVList struct {
 	actChan chan *listAct
 	// curOffset            *uint32 //current offset value of scrollbar
 	curStartPoint        *uint32 //the index of first row showed
+	curShowedLines       *uint32
 	multiSelection       bool
 	curSelections        []bool
 	headerLook, bodyLook *Look
@@ -111,13 +112,14 @@ func NewDVList(data Data, options ...Option) (*DVList, error) {
 		return nil, fmt.Errorf("data has more fields (%d) than allowed (%d)", len(data.Fields()), MaxFields)
 	}
 	list := &DVList{
-		data:          data,
-		mux:           new(sync.RWMutex),
-		actChan:       make(chan *listAct, actChanDepth),
-		curStartPoint: new(uint32),
-		curSelections: []bool{},
-		headerLook:    defaultHeaderLook(),
-		bodyLook:      defaultBodyLook(),
+		data:           data,
+		mux:            new(sync.RWMutex),
+		actChan:        make(chan *listAct, actChanDepth),
+		curStartPoint:  new(uint32),
+		curShowedLines: new(uint32),
+		curSelections:  []bool{},
+		headerLook:     defaultHeaderLook(),
+		bodyLook:       defaultBodyLook(),
 	}
 	atomic.StoreUint32(list.curStartPoint, 0)
 	for i := 0; i < data.Len(); i++ {
@@ -245,6 +247,17 @@ func (list *DVList) onScroll(offset uint32) {
 	}
 }
 
+// Scrolled implment fyne.Scrollable interface (e.g. mouse wheel scrolling)
+func (list *DVList) Scrolled(evt *fyne.ScrollEvent) {
+	if evt.Scrolled.DY < 0 && atomic.LoadUint32(list.curStartPoint) < uint32(list.data.Len())-1 {
+		//go down
+		list.ScrollTo(int(atomic.AddUint32(list.curStartPoint, 1)))
+	} else if evt.Scrolled.DY > 0 && atomic.LoadUint32(list.curStartPoint) > 0 {
+		//go up
+		list.ScrollTo(int(atomic.AddUint32(list.curStartPoint, ^uint32(0))))
+	}
+}
+
 // TypedKey could be linked to Parent window keyevent by using window.Canvas().SetOnTypedKey()
 func (list *DVList) TypedKey(evt *fyne.KeyEvent) {
 	curpoint := int(atomic.LoadUint32(list.curStartPoint))
@@ -259,6 +272,21 @@ func (list *DVList) TypedKey(evt *fyne.KeyEvent) {
 		if curpoint >= list.data.Len() {
 			return
 		}
+	case fyne.KeyPageDown:
+		curpoint += int(atomic.LoadUint32(list.curShowedLines)) - 1
+	case fyne.KeyPageUp:
+		curpoint -= int(atomic.LoadUint32(list.curShowedLines)) - 1
+	case fyne.KeyHome:
+		curpoint = 0
+	case fyne.KeyEnd:
+		curpoint = list.data.Len() - 1
+	}
+
+	if curpoint < 0 {
+		curpoint = 0
+	}
+	if curpoint >= list.data.Len() {
+		curpoint = list.data.Len() - 1
 	}
 	list.ScrollTo(curpoint)
 }
@@ -354,13 +382,16 @@ func (dlr *dvListRender) loadData(layoutsize fyne.Size) {
 		// log.Printf("set new offset %d", newoffset)
 		dlr.scrollbar.SetOffset(newoffset)
 	}()
+	showedLine := 0
 	for i := startPoint; i < dlr.list.data.Len(); i++ {
 		row := NewListBodyRow(i, dlr.list.data.Item(i), dlr.list.onSelectRow,
 			dlr.list.doubleClickHandler, dlr.header.arrangements,
 			dlr.list.bodyLook)
 		dlr.body = append(dlr.body, row)
+		showedLine++
 		h += row.MinSize().Height
 		if h > layoutsize.Height {
+			atomic.StoreUint32(dlr.list.curShowedLines, uint32(showedLine))
 			return
 		}
 	}
