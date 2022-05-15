@@ -419,11 +419,26 @@ const (
 	listLayoutRedoALL = iota
 	listLayoutRedoBody
 	listLayoutLazy
+	listLayoutUpdateSelection
 )
 
 // recreate everything if force is true
 func (dlr *dvListRender) layout(layoutsize fyne.Size, mode int) {
-	// log.Printf("body layout for %v, with startpoint %d", layoutsize, atomic.LoadUint32(dlr.list.curStartPoint))
+	// debug.PrintStack()
+	// log.Printf("body layout for %v, with startpoint %d with mode %d", layoutsize, atomic.LoadUint32(dlr.list.curStartPoint), mode)
+	switch mode {
+	case listLayoutUpdateSelection:
+		for _, row := range dlr.body {
+			if dlr.list.curSelections[row.rowID] {
+				row.SetSelection(true, true)
+			} else {
+				row.SetSelection(false, true)
+			}
+			// dlr.overallContainer.Add(row)
+
+		}
+		return
+	}
 	if mode == listLayoutLazy {
 		dlr.list.mux.RLock()
 		if dlr.overallContainer != nil &&
@@ -510,7 +525,8 @@ func (dlr *dvListRender) Refresh() {
 		case actSortData:
 			dlr.layout(dlr.list.Size(), listLayoutRedoBody)
 		case actSetSelection:
-			dlr.layout(dlr.list.Size(), listLayoutRedoBody)
+			dlr.layout(dlr.list.Size(), listLayoutUpdateSelection)
+			// dlr.layout(dlr.list.Size(), listLayoutRedoBody)
 			// rowindex := act.arg.(rowSelectionArgs).row - int(atomic.LoadUint32(dlr.list.curStartPoint))
 			// if rowindex < 0 || rowindex >= len(dlr.body) {
 			// 	return

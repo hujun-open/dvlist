@@ -3,6 +3,7 @@ package dvlist
 
 import (
 	"image/color"
+
 	// "log"
 	"sync"
 	"sync/atomic"
@@ -172,6 +173,7 @@ func (rl *resizableLabel) DragEnd() {
 }
 
 func (rl *resizableLabel) Tapped(evt *fyne.PointEvent) {
+	// log.Printf("mouse clicked")
 	if atomic.LoadUint32(rl.dragging) != 0 {
 		atomic.StoreUint32(rl.dragging, 0)
 		return

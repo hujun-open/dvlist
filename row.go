@@ -188,6 +188,13 @@ func (row *listRow) CreateRenderer() fyne.WidgetRenderer {
 }
 
 func (row *listRow) SetSelection(selected bool, admin bool) {
+
+	if selected == (atomic.LoadUint32(row.selected) == 1) {
+		//same state, no need update
+		// log.Printf("row %d set selection done,no change", row.rowID)
+		return
+	}
+	// log.Printf("row %d set selection done,need change", row.rowID)
 	if selected {
 		atomic.StoreUint32(row.selected, 1)
 	} else {
